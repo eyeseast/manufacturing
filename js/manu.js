@@ -1,13 +1,15 @@
 var url = "../data/manu-by-state.csv"
   , margins = {top: 10, right: 10, bottom: 10, left: 10}
   , width = parseInt(d3.select('#map').style('width'))
-  , height = 600;
+  , height = width * 2/3;
 
 var map = d3.select('#map').append('svg')
-    .style('width', width + 'px')
-    .style('height', height + 'px');
+	.style('width', width + 'px')
+	.style('height', height + 'px');
 
-var albers = d3.geo.albersUsa();
+var albers = d3.geo.albersUsa()
+	.scale(window.innerWidth)
+	.translate([width / 2, height / 2]);
 
 var path = d3.geo.path()
     .projection(albers);
@@ -21,6 +23,7 @@ queue()
 	.defer(d3.csv, url)
 	.await(render);
 
+d3.select(window).on('resize', resize);
 d3.select('[name=key]').on('change', update);
 
 function update() {
@@ -45,6 +48,7 @@ function render(err, us, gdp) {
 	var states = topojson.feature(us, us.objects.states)
 	  , land = topojson.mesh(us, us.objects.land);
 
+	window.us = us;
 	window.gdp = gdp = _.object(_.map(gdp, function(d) {
 		d['Percent US Manu GDP'] = +d['Percent US Manu GDP'];
 		d['GDP'] = +d['GDP'];
@@ -74,3 +78,22 @@ function render(err, us, gdp) {
 	    	return colors(value);
 	    });
 }
+
+function resize() {
+	// adjust things when the window size changes
+	width = parseInt(d3.select('#map').style('width'));
+	height = width * 2/3;
+
+	albers
+		.translate([width / 2, height / 2])
+		.scale(window.innerWidth);
+
+	map
+		.style('width', width + 'px')
+		.style('height', height + 'px');
+
+
+	map.select('.land').attr('d', path);
+	map.selectAll('.states').attr('d', path);
+}
+
