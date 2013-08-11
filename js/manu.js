@@ -23,7 +23,7 @@ queue()
 	.defer(d3.csv, url)
 	.await(render);
 
-d3.select(window).on('resize', resize);
+d3.select(window).on('resize', function() { requestAnimationFrame(resize); });
 d3.select('[name=key]').on('change', update);
 
 function update() {
