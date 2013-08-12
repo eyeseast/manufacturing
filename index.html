@@ -3,6 +3,7 @@
 <head>
 	<title>Manufacturing</title>
 	<link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+	<link rel="stylesheet" type="text/css" href="components/d3/lib/colorbrewer/colorbrewer.css">
 
 	<style type="text/css">
 	.states {
@@ -35,7 +36,11 @@
 	}
 
 	.bar rect.manufacturing {
-		fill: Steelblue;
+		fill: rgb(253, 141, 60);
+	}
+
+	.bar:hover rect.manufacturing {
+		fill: rgb(254, 178, 76);
 	}
 
 	.bar text {

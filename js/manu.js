@@ -31,7 +31,7 @@ var path = d3.geo.path()
 
 // scales and axes
 var colors = d3.scale.quantize()
-	.domain([0, 100])
+	.domain([0, 50])
     .range(colorbrewer.YlOrRd[9]);
 
 var x = d3.scale.linear()
@@ -119,9 +119,11 @@ function render(err, us, gdp) {
 		return [d.Area, d];
 	}).object().value();
 
+	/***
 	colors.domain(d3.extent(d3.values(gdp), function(d) {
 		return d[key];
 	}));
+	***/
 
 	// make a map
 	map.append('path')
@@ -172,6 +174,8 @@ function resize() {
 	width = width - margin.left - margin.right;
 	height = width * 2/3;
 
+	var key = d3.select('[name=key]').property('value');
+
 	albers
 		.translate([width / 2, height / 2])
 		.scale(width);
@@ -184,9 +188,19 @@ function resize() {
 		.style('width', width + 'px')
 		.style('height', height + 'px');
 
+	// resize the chart
 	x.range([0, width]);
 	chart.select('.x.axis').call(xAxis);
+	d3.select(chart.node().parentNode)
+		.style('height', (y.rangeExtent()[1] + margin.top + margin.bottom) + 'px');
 
+	bars.select('rect.non-manufacturing')
+        .attr('width', width);
+    
+	bars.select('rect.manufacturing')
+		.attr('width', function(d) { return x(d[key]); });
+
+	// resize the map
 	map.select('.land').attr('d', path);
 	map.selectAll('.states').attr('d', path);
 }
