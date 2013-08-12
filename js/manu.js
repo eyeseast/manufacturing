@@ -9,7 +9,7 @@ var url = "../data/manu-by-state.csv"
 
 var formats = {
 	'State Percent Manu': function(d) { return String(d) + '%'; },
-	'State Manu GDP': function(d) { return '$' + d3.format(',')(d); }
+	'State Manu GDP': function(d) { return '$' + d3.format('s')(d); }
 };
 
 var chart = d3.select('#chart').append('svg')
@@ -43,10 +43,6 @@ var y = d3.scale.ordinal();
 var xAxis = d3.svg.axis()
 	.orient('top')
     .scale(x);
-
-chart.append('g')
-    .attr('class', 'x axis')
-    .call(xAxis);
 
 queue()
 	.defer(d3.json, '../data/us.json')
@@ -100,7 +96,10 @@ function render(err, us, gdp) {
 
 	// set the y range and x format
 	xAxis.tickFormat(formats[key]);
-
+	chart.append('g')
+	    .attr('class', 'x axis')
+	    .call(xAxis);
+	
 	y.domain(d3.range(gdp.length))
 		.rangeBands([0, barHeight * gdp.length]);
 
@@ -118,12 +117,6 @@ function render(err, us, gdp) {
 		// then return [key, value]
 		return [d.Area, d];
 	}).object().value();
-
-	/***
-	colors.domain(d3.extent(d3.values(gdp), function(d) {
-		return d[key];
-	}));
-	***/
 
 	// make a map
 	map.append('path')
@@ -196,7 +189,7 @@ function resize() {
 
 	bars.select('rect.non-manufacturing')
         .attr('width', width);
-    
+
 	bars.select('rect.manufacturing')
 		.attr('width', function(d) { return x(d[key]); });
 
