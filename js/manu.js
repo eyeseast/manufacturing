@@ -4,7 +4,13 @@ var url = "../data/manu-by-state.csv"
   , width = width - margin.left - margin.right
   , height = width * 2/3
   , barHeight = 20
-  , spacing = 3;
+  , spacing = 3
+  , bars;
+
+var formats = {
+	'State Percent Manu': function(d) { return String(d) + '%'; },
+	'State Manu GDP': function(d) { return '$' + d3.format(',')(d); }
+};
 
 var chart = d3.select('#chart').append('svg')
     .style('width', (width + margin.left + margin.right) + 'px')
@@ -36,8 +42,7 @@ var y = d3.scale.ordinal();
 
 var xAxis = d3.svg.axis()
 	.orient('top')
-    .scale(x)
-    .tickFormat(function(d) { return String(d) + '%'; });
+    .scale(x);
 
 chart.append('g')
     .attr('class', 'x axis')
@@ -52,12 +57,30 @@ d3.select(window).on('resize', function() { requestAnimationFrame(resize); });
 d3.select('[name=key]').on('change', update);
 
 function update() {
-	var key = d3.select(this).property('value');
-	console.log(key);
+	var key = d3.select(this).property('value')
+	  , values = _(gdp).chain().values().sortBy(key).reverse().value();
 
-	colors.domain(d3.extent(d3.values(gdp), function(d) {
-		return d[key];
-	}));
+	// update our extent for either raw numbers or percents
+	var max = key === "State Percent Manu" ? 50
+	  : d3.max(values, function(d) { return d[key]; });
+
+	colors.domain([0, max]);
+	x.domain([0, max]);
+	xAxis.tickFormat(formats[key]);
+
+	// update the chart
+	chart.select('.x.axis')
+		.transition()
+		.duration(500)
+	    .call(xAxis);
+	
+	bars
+	    .data(values, function(d) { return d.Area; })
+	  .transition()
+	  .duration(500)
+	    .attr('transform', function(d, i) { return translate(0, y(i)); })
+	  .select('rect.manufacturing')
+	    .attr('width', function(d) { return x(d[key]); });
 
 	map.selectAll('path.states')
     	.style('fill', function(d) {
@@ -68,13 +91,16 @@ function update() {
 		});
 }
 
+
 function render(err, us, gdp) {
 	
 	var states = topojson.feature(us, us.objects.states)
 	  , land = topojson.mesh(us, us.objects.land)
 	  , key = d3.select('[name=key]').property('value');
 
-	// set the y range
+	// set the y range and x format
+	xAxis.tickFormat(formats[key]);
+
 	y.domain(d3.range(gdp.length))
 		.rangeBands([0, barHeight * gdp.length]);
 
@@ -117,7 +143,8 @@ function render(err, us, gdp) {
 
 	// make a chart
 	bars = chart.selectAll('.bar')
-	    .data(_.values(gdp))
+	    .data(_(gdp).chain().values().sortBy(key).reverse().value(), 
+	    	function(d) { return d.Area; })
 	  .enter().append('g')
 	    .attr('class', 'bar')
 	    .attr('transform', function(d, i) { return translate(0, y(i)) });
@@ -136,8 +163,8 @@ function render(err, us, gdp) {
 	    .text(function(d) { return d.Area; })
 	    .attr('y', y.rangeBand() - 5)
 	    .attr('x', spacing);
-
 }
+
 
 function resize() {
 	// adjust things when the window size changes
@@ -163,6 +190,7 @@ function resize() {
 	map.select('.land').attr('d', path);
 	map.selectAll('.states').attr('d', path);
 }
+
 
 function translate(x, y) {
 	return "translate(" + [x, y] + ")";
