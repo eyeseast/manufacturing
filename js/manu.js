@@ -47,6 +47,7 @@ var xAxis = d3.svg.axis()
 queue()
 	.defer(d3.json, urls.us)
 	.defer(d3.csv, urls.gdp)
+	.defer(d3.csv, urls.sectors)
 	.await(render);
 
 d3.select(window).on('resize', function() { requestAnimationFrame(resize); });
@@ -88,7 +89,7 @@ function update() {
 }
 
 
-function render(err, us, gdp) {
+function render(err, us, gdp, sectors) {
 	
 	var states = topojson.feature(us, us.objects.states)
 	  , land = topojson.mesh(us, us.objects.land)
@@ -107,7 +108,7 @@ function render(err, us, gdp) {
 		.style('height', (y.rangeExtent()[1] + margin.top + margin.bottom) + 'px');
 
 	window.us = us;
-	window.gdp = gdp = _(gdp).chain().map(function(d) {
+	var gdp = window.gdp = _(gdp).chain().map(function(d) {
 		// fix our numbers
 		d['Percent US Manu GDP'] = +d['Percent US Manu GDP'];
 		d['GDP'] = +d['GDP'];
@@ -117,6 +118,16 @@ function render(err, us, gdp) {
 		// then return [key, value]
 		return [d.Area, d];
 	}).object().value();
+
+	// merge in sector data
+	_.each(sectors, function(d) {
+		// each row has [state, sector, gdp]
+		// set gdp[state].sectors[sector] = gdp
+		var state = gdp[d.State] || (gdp[d.State] = {})
+		  , sectors = state.sectors || (state.sectors = {});
+
+		sectors[d.Sector] = parseInt(d.GDP.replace('$', ''));
+	});
 
 	// make a map
 	map.append('path')
