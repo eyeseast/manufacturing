@@ -1,5 +1,4 @@
-var url = "../data/manu-by-state.csv"
-  , margin = {top: 30, right: 20, bottom: 10, left: 20}
+var margin = {top: 30, right: 20, bottom: 10, left: 20}
   , width = parseInt(d3.select('#map').style('width'))
   , width = width - margin.left - margin.right
   , height = width * 2/3
@@ -8,8 +7,9 @@ var url = "../data/manu-by-state.csv"
   , bars;
 
 var formats = {
+	'prefixed': d3.format('s'),
 	'State Percent Manu': function(d) { return String(d) + '%'; },
-	'State Manu GDP': function(d) { return '$' + d3.format('s')(d); }
+	'State Manu GDP': function(d) { return '$' + formats.prefixed(d); }
 };
 
 var chart = d3.select('#chart').append('svg')
@@ -45,8 +45,8 @@ var xAxis = d3.svg.axis()
     .scale(x);
 
 queue()
-	.defer(d3.json, '../data/us.json')
-	.defer(d3.csv, url)
+	.defer(d3.json, urls.us)
+	.defer(d3.csv, urls.gdp)
 	.await(render);
 
 d3.select(window).on('resize', function() { requestAnimationFrame(resize); });
@@ -99,7 +99,7 @@ function render(err, us, gdp) {
 	chart.append('g')
 	    .attr('class', 'x axis')
 	    .call(xAxis);
-	
+
 	y.domain(d3.range(gdp.length))
 		.rangeBands([0, barHeight * gdp.length]);
 
