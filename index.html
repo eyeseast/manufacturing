@@ -54,6 +54,11 @@
 		text-color: #ccc;
 	}
 
+	#pie svg {
+		width: 100%;
+		height: 200px;
+	}
+
 	</style>
 </head>
 <body>
@@ -68,11 +73,36 @@
 		<div id="chart" class="row"></div>
 	</div>
 
+	<div class="modal fade" id="modal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title"></h4>
+				</div>
+				<div class="modal-body">
+					<div id="pie" class="col-6">
+						<h5>Manufacturing GDP</h5>
+					</div>
+					<div id="state-info" class="col-6">
+						<h5>More info</h5>
+					</div>
+				</div>
+				<div class="modal-footer"></div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+
+	
 	<script src="components/d3/d3.min.js"></script>
 	<script src="components/d3/lib/colorbrewer/colorbrewer.js"></script>
 	<script src="components/queue-async/queue.min.js"></script>
 	<script src="components/topojson/topojson.min.js"></script>
 	<script src="components/underscore/underscore-min.js"></script>
+	
+	<script src="components/jquery/jquery.min.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	
 	<script type="text/javascript">
 	var urls = {
 		us: 'data/us.json',

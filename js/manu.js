@@ -44,6 +44,13 @@ var xAxis = d3.svg.axis()
 	.orient('top')
     .scale(x);
 
+var arc = d3.svg.arc()
+	.innerRadius(0)
+	.outerRadius(75);
+
+var pie = d3.layout.pie()
+	.value(function(d) { return d[1]; });
+
 queue()
 	.defer(d3.json, urls.us)
 	.defer(d3.csv, urls.gdp)
@@ -52,6 +59,41 @@ queue()
 
 d3.select(window).on('resize', function() { requestAnimationFrame(resize); });
 d3.select('[name=key]').on('change', update);
+
+function modal(d, i) {
+	// get a state, checking if we just clicked the map or a bar
+	var state = d.Area ? d : gdp[d.properties.name]
+	  , sectors = _.pairs(state.sectors)
+	  , colors = d3.scale.category20c()
+	  , modal = d3.select('#modal')
+	  , width = 100; // placeholder
+
+	window.state = state;
+	
+	// update the modal for this state
+	modal.select('.modal-title').text(state.Area);
+
+	// show the actual modal
+	$(modal.node()).modal('show');
+
+	// pie chart
+	modal.select('svg').remove()
+	
+	var svg = modal.select('#pie').append('svg')
+	  .append('g')
+	    .attr('class', 'pie')
+	    .attr('transform', translate(100, 100));
+
+	var slices = svg.selectAll('.arc')
+	    .data(pie(sectors))
+	  .enter().append('g')
+	    .attr('class', 'arc');
+
+	slices.append('path')
+		.attr('d', arc)
+		.style('fill', function(d) { return colors(d.data[0]); });
+
+}
 
 function update() {
 	var key = d3.select(this).property('value')
@@ -134,7 +176,8 @@ function render(err, us, gdp, sectors) {
 	  .enter().append('path')
 	    .attr('d', path)
 	    .attr('class', 'states')
-	    .call(stateStyle, key);
+	    .call(stateStyle, key)
+	    .on('click', modal);
 
 	// make a chart
 	bars = chart.selectAll('.bar')
@@ -158,6 +201,8 @@ function render(err, us, gdp, sectors) {
 	    .text(function(d) { return d.Area; })
 	    .attr('y', y.rangeBand() - 5)
 	    .attr('x', spacing);
+
+	bars.on('click', modal);
 }
 
 
