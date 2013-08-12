@@ -1,22 +1,47 @@
 var url = "../data/manu-by-state.csv"
-  , margins = {top: 10, right: 10, bottom: 10, left: 10}
+  , margin = {top: 30, right: 20, bottom: 10, left: 20}
   , width = parseInt(d3.select('#map').style('width'))
-  , height = width * 2/3;
+  , width = width - margin.left - margin.right
+  , height = width * 2/3
+  , barHeight = 20
+  , spacing = 3;
+
+var chart = d3.select('#chart').append('svg')
+    .style('width', (width + margin.left + margin.right) + 'px')
+  .append('g')
+  	.attr('transform', 'translate(' + [margin.left, margin.top] + ')');
 
 var map = d3.select('#map').append('svg')
 	.style('width', width + 'px')
 	.style('height', height + 'px');
 
+// projection and path setup
 var albers = d3.geo.albersUsa()
-	.scale(window.innerWidth)
+	.scale(width)
 	.translate([width / 2, height / 2]);
 
 var path = d3.geo.path()
     .projection(albers);
 
+// scales and axes
 var colors = d3.scale.quantize()
 	.domain([0, 100])
     .range(colorbrewer.YlOrRd[9]);
+
+var x = d3.scale.linear()
+    .domain([0, 50])
+    .range([0, width]);
+
+var y = d3.scale.ordinal();
+
+var xAxis = d3.svg.axis()
+	.orient('top')
+    .scale(x)
+    .tickFormat(function(d) { return String(d) + '%'; });
+
+chart.append('g')
+    .attr('class', 'x axis')
+    .call(xAxis);
 
 queue()
 	.defer(d3.json, '../data/us.json')
@@ -46,21 +71,33 @@ function update() {
 function render(err, us, gdp) {
 	
 	var states = topojson.feature(us, us.objects.states)
-	  , land = topojson.mesh(us, us.objects.land);
+	  , land = topojson.mesh(us, us.objects.land)
+	  , key = d3.select('[name=key]').property('value');
+
+	// set the y range
+	y.domain(d3.range(gdp.length))
+		.rangeBands([0, barHeight * gdp.length]);
+
+	d3.select(chart.node().parentNode)
+		.style('height', (y.rangeExtent()[1] + margin.top + margin.bottom) + 'px');
 
 	window.us = us;
-	window.gdp = gdp = _.object(_.map(gdp, function(d) {
+	window.gdp = gdp = _(gdp).chain().map(function(d) {
+		// fix our numbers
 		d['Percent US Manu GDP'] = +d['Percent US Manu GDP'];
 		d['GDP'] = +d['GDP'];
 		d['State Manu GDP'] = +d['State Manu GDP'];
 		d['State Percent Manu'] = +d['State Percent Manu'];
+
+		// then return [key, value]
 		return [d.Area, d];
-	}));
+	}).object().value();
 
 	colors.domain(d3.extent(d3.values(gdp), function(d) {
-		return d['State Percent Manu'];
+		return d[key];
 	}));
 
+	// make a map
 	map.append('path')
 	    .datum(land)
 	    .attr('class', 'land')
@@ -73,27 +110,60 @@ function render(err, us, gdp) {
 	    .attr('class', 'states')
 	    .style('fill', function(d) {
 	    	var name = d.properties.name
-	    	  , value = gdp[name] ? gdp[name]['State Percent Manu'] : null;
+	    	  , value = gdp[name] ? gdp[name][key] : null;
 
 	    	return colors(value);
 	    });
+
+	// make a chart
+	bars = chart.selectAll('.bar')
+	    .data(_.values(gdp))
+	  .enter().append('g')
+	    .attr('class', 'bar')
+	    .attr('transform', function(d, i) { return translate(0, y(i)) });
+	
+	bars.append('rect')
+		.attr('class', 'non-manufacturing')
+		.attr('height', y.rangeBand())
+		.attr('width', width);
+
+	bars.append('rect')
+		.attr('class', 'manufacturing')
+	  	.attr('height', y.rangeBand())
+	  	.attr('width', function(d) { return x(d[key]); });
+	
+	bars.append('text')
+	    .text(function(d) { return d.Area; })
+	    .attr('y', y.rangeBand() - 5)
+	    .attr('x', spacing);
+
 }
 
 function resize() {
 	// adjust things when the window size changes
 	width = parseInt(d3.select('#map').style('width'));
+	width = width - margin.left - margin.right;
 	height = width * 2/3;
 
 	albers
 		.translate([width / 2, height / 2])
-		.scale(window.innerWidth);
+		.scale(width);
 
 	map
 		.style('width', width + 'px')
 		.style('height', height + 'px');
 
+	d3.select(chart.node().parentNode)
+		.style('width', width + 'px')
+		.style('height', height + 'px');
+
+	x.range([0, width]);
+	chart.select('.x.axis').call(xAxis);
 
 	map.select('.land').attr('d', path);
 	map.selectAll('.states').attr('d', path);
 }
 
+function translate(x, y) {
+	return "translate(" + [x, y] + ")";
+}
