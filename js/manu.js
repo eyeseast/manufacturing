@@ -79,13 +79,7 @@ function update() {
 	  .select('rect.manufacturing')
 	    .attr('width', function(d) { return x(d[key]); });
 
-	map.selectAll('path.states')
-    	.style('fill', function(d) {
-			var name = d.properties.name
-			  , value = gdp[name] ? gdp[name][key] : null;
-
-			return colors(value);
-		});
+	map.selectAll('path.states').call(stateStyle, key);
 }
 
 
@@ -140,12 +134,7 @@ function render(err, us, gdp, sectors) {
 	  .enter().append('path')
 	    .attr('d', path)
 	    .attr('class', 'states')
-	    .style('fill', function(d) {
-	    	var name = d.properties.name
-	    	  , value = gdp[name] ? gdp[name][key] : null;
-
-	    	return colors(value);
-	    });
+	    .call(stateStyle, key);
 
 	// make a chart
 	bars = chart.selectAll('.bar')
@@ -210,6 +199,16 @@ function resize() {
 	// resize the map
 	map.select('.land').attr('d', path);
 	map.selectAll('.states').attr('d', path);
+}
+
+
+function stateStyle(selection, key) {
+	selection.style('fill', function(d) {
+		var name = d.properties.name
+		  , value = gdp[name] ? gdp[name][key] : null;
+
+		return colors(value);
+	});
 }
 
 
