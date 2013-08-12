@@ -183,9 +183,12 @@ function resize() {
 
 	// resize the chart
 	x.range([0, width]);
-	chart.select('.x.axis').call(xAxis);
 	d3.select(chart.node().parentNode)
-		.style('height', (y.rangeExtent()[1] + margin.top + margin.bottom) + 'px');
+		.style('height', (y.rangeExtent()[1] + margin.top + margin.bottom) + 'px')
+		.style('width', (width + margin.left + margin.right) + 'px');
+
+	chart.select('.x.axis').call(xAxis);
+
 
 	bars.select('rect.non-manufacturing')
         .attr('width', width);
