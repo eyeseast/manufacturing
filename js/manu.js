@@ -1,7 +1,8 @@
 var margin = {top: 30, right: 20, bottom: 10, left: 20}
+  , mapRatio = .55
   , width = parseInt(d3.select('#map').style('width'))
   , width = width - margin.left - margin.right
-  , height = width * 2/3
+  , height = width * mapRatio
   , barHeight = 20
   , spacing = 3
   , bars;
@@ -32,7 +33,7 @@ var path = d3.geo.path()
 // scales and axes
 var colors = d3.scale.quantize()
 	.domain([0, 50])
-    .range(colorbrewer.YlOrRd[9]);
+    .range(colorbrewer.YlGnBu[7]);
 
 var x = d3.scale.linear()
     .domain([0, 50])
@@ -100,9 +101,11 @@ function update() {
 	  , values = _(gdp).chain().values().sortBy(key).reverse().value();
 
 	// update our extent for either raw numbers or percents
+	/***
 	var max = key === "State Percent Manu" ? 50
 	  : d3.max(values, function(d) { return d[key]; });
-
+	***/
+	var max = d3.max(values, function(d) { return d[key]; });
 	colors.domain([0, max]);
 	x.domain([0, max]);
 	xAxis.tickFormat(formats[key]);
@@ -210,7 +213,7 @@ function resize() {
 	// adjust things when the window size changes
 	width = parseInt(d3.select('#map').style('width'));
 	width = width - margin.left - margin.right;
-	height = width * 2/3;
+	height = width * mapRatio;
 
 	var key = d3.select('[name=key]').property('value');
 
