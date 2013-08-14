@@ -45,12 +45,26 @@ var xAxis = d3.svg.axis()
 	.orient('top')
     .scale(x);
 
-var arc = d3.svg.arc()
-	.innerRadius(0)
-	.outerRadius(75);
+var colorSelect = d3.select('form').append('select')
+    .attr('name', 'color')
+    .on('change', function() {
+    	var value = this.value
+    	  , key = d3.select('[name=key]').property('value');
 
-var pie = d3.layout.pie()
-	.value(function(d) { return d[1]; });
+    	colors.range(colorbrewer[value][7]);
+
+    	map.selectAll('path.states')
+    	    .transition()
+    	    .duration(500)
+    	    .call(stateStyle, key);
+
+    });
+
+colorSelect.selectAll('option')
+    .data(_.keys(colorbrewer))
+  .enter().append('option')
+    .attr('value', String)
+    .text(String);
 
 queue()
 	.defer(d3.json, urls.us)
