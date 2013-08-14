@@ -124,13 +124,16 @@ function update() {
 	  .select('rect.manufacturing')
 	    .attr('width', function(d) { return x(d[key]); });
 
-	map.selectAll('path.states').call(stateStyle, key);
+	map.selectAll('path.states')
+	    .transition()
+	    .duration(500)
+	    .call(stateStyle, key);
 }
 
 
 function render(err, us, gdp, sectors) {
 	
-	var states = topojson.feature(us, us.objects.states)
+	var states = topojson.feature(us, us.objects.states, function(a, b) { return a !== b; })
 	  , land = topojson.mesh(us, us.objects.land)
 	  , key = d3.select('[name=key]').property('value');
 

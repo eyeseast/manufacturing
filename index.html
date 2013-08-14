@@ -8,14 +8,22 @@
 	<link rel="stylesheet" type="text/css" href="components/d3/lib/colorbrewer/colorbrewer.css">
 
 	<style type="text/css">
+
+	.statelines {
+		stroke: #ddd;
+		stroke-width: 1;
+	}
+
 	.states {
 	    fill: none;
-	    stroke: #ddd;
-	    stroke-width: 1;
+	    stroke: #ccc;
+	    stroke-width: 0.5;
+	    stroke-linejoin: round;
 	}
 
 	.states:hover {
-		opacity: .7;
+		stroke: #333;
+		stroke-width: 1.5;
 	}
 
 	.land {
@@ -73,14 +81,15 @@
 				<h1>Manufacturing in America</h1>
 				<p>The U.S. is the world's largest manufacturing economy, producing 22 percent fo the world's manufactured products. In some states like California and Texas, manufacturing contributes billions of dollars to the economy.</p>
 			</div>
+			<form class="col-4">
+				<select name="key" class="">
+					<option value="State Percent Manu">Percent of State GDP from Manufacturing</option>
+					<option value="State Manu GDP">Total State Manufacturing GDP</option>
+				</select>
+			</form>
+
 		</header>
 		<div id="map" class="row"></div>
-		<form class="row">
-			<select name="key" class="span4">
-				<option value="State Percent Manu">Percent of State GDP from Manufacturing</option>
-				<option value="State Manu GDP">Total State Manufacturing GDP</option>
-			</select>
-		</form>
 		<div id="chart" class="row"></div>
 	</div>
 
