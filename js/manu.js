@@ -65,6 +65,8 @@ colorSelect.selectAll('option')
     .attr('value', String)
     .text(String);
 
+colorSelect.property('value', 'YlGnBu');
+
 queue()
 	.defer(d3.json, urls.us)
 	.defer(d3.csv, urls.gdp)
