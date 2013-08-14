@@ -23,12 +23,12 @@ var map = d3.select('#map').append('svg')
 	.style('height', height + 'px');
 
 // projection and path setup
-var albers = d3.geo.albersUsa()
+var projection = d3.geo.albersUsa()
 	.scale(width)
 	.translate([width / 2, height / 2]);
 
 var path = d3.geo.path()
-    .projection(albers);
+    .projection(projection);
 
 // scales and axes
 var colors = d3.scale.quantize()
@@ -57,7 +57,6 @@ var colorSelect = d3.select('form').append('select')
     	    .transition()
     	    .duration(500)
     	    .call(stateStyle, key);
-
     });
 
 colorSelect.selectAll('option')
@@ -149,10 +148,8 @@ function update() {
 
 
 function render(err, us, gdp, sectors) {
-	
-	var states = topojson.feature(us, us.objects.states, function(a, b) { return a !== b; })
-	  , land = topojson.mesh(us, us.objects.land)
-	  , key = d3.select('[name=key]').property('value');
+
+	var key = d3.select('[name=key]').property('value');
 
 	// set the y range and x format
 	xAxis.tickFormat(formats[key]);
@@ -166,7 +163,6 @@ function render(err, us, gdp, sectors) {
 	d3.select(chart.node().parentNode)
 		.style('height', (y.rangeExtent()[1] + margin.top + margin.bottom) + 'px');
 
-	window.us = us;
 	var gdp = window.gdp = _(gdp).chain().map(function(d) {
 		// fix our numbers
 		d['Percent US Manu GDP'] = +d['Percent US Manu GDP'];
@@ -188,20 +184,6 @@ function render(err, us, gdp, sectors) {
 		// figures should be in millions
 		sectors[d.Sector] = parseInt(d.GDP.replace('$', '') * Math.pow(10, 6));
 	});
-
-	// make a map
-	map.append('path')
-	    .datum(land)
-	    .attr('class', 'land')
-	    .attr('d', path);
-
-	map.selectAll('path.states')
-	    .data(states.features)
-	  .enter().append('path')
-	    .attr('d', path)
-	    .attr('class', 'states')
-	    .call(stateStyle, key)
-	    .on('click', modal);
 
 	// make a chart
 	bars = chart.selectAll('.bar')
@@ -227,6 +209,51 @@ function render(err, us, gdp, sectors) {
 	    .attr('x', spacing);
 
 	bars.on('click', modal);
+
+	// make a map
+	window.us = us;
+
+	var states = topojson.feature(us, us.objects.states, function(a, b) { return a !== b; })
+	  , land = topojson.mesh(us, us.objects.land);
+
+	if (projection.center) {
+		// center over the US, for projections that need this
+		projection.center(path.centroid(land));
+	}
+
+	map.append('path')
+	    .datum(land)
+	    .attr('class', 'land')
+	    .attr('d', path);
+
+	map.selectAll('path.states')
+	    .data(states.features)
+	  .enter().append('path')
+	    .attr('d', path)
+	    .attr('class', 'states')
+	    .call(stateStyle, key)
+	    .on('click', modal)
+	    .on('mouseover', function(d, i) {
+	    	var state = d3.select(this)
+	    	  , fill = d3.rgb(state.style('fill'));
+
+	    	state.style('fill', fill.darker(.2));
+
+	    	hover.datum(d)
+	    		.style('stroke', '#333')
+	    		.style('stroke-width', 2)
+	    		.attr('d', path);
+	    })
+	    .on('mouseout', function(d, i) {
+	    	var state = d3.select(this)
+	    	  , fill = d3.rgb(state.style('fill'));
+
+	    	state.style('fill', fill.brighter(.2));
+	    });
+
+	var hover = map.append('path')
+		.attr('class', 'hover');
+
 }
 
 
@@ -238,7 +265,7 @@ function resize() {
 
 	var key = d3.select('[name=key]').property('value');
 
-	albers
+	projection
 		.translate([width / 2, height / 2])
 		.scale(width);
 
