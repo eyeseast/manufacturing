@@ -6,7 +6,7 @@ var suite = vows.describe("d3.scale.linear");
 
 suite.addBatch({
   "linear": {
-    topic: load("scale/linear", "interpolate/hsl").document(), // beware instanceof d3_Color
+    topic: load("scale/linear", "interpolate/hsl"), // beware instanceof d3_Color
 
     "domain": {
       "defaults to [0, 1]": function(d3) {
@@ -196,6 +196,16 @@ suite.addBatch({
       }
     },
 
+    "tickFormat": {
+      "applies automatic precision when not explicitly specified": function(d3) {
+        var x = d3.scale.linear();
+        assert.strictEqual(x.tickFormat(10, "f")(Math.PI), "3.1")
+        assert.strictEqual(x.tickFormat(100, "f")(Math.PI), "3.14");
+        assert.strictEqual(x.tickFormat(100, "$f")(Math.PI), "$3.14");
+        assert.strictEqual(x.domain([0, 100]).tickFormat(100, "%")(Math.PI), "314%");
+      }
+    },
+
     "nice": {
       "nices the domain, extending it to round numbers": function(d3) {
         var x = d3.scale.linear().domain([1.1, 10.9]).nice();
@@ -220,6 +230,14 @@ suite.addBatch({
         assert.deepEqual(x.domain(), [1, 1, 2, 3, 11]);
         var x = d3.scale.linear().domain([123.1, 1, 2, 3, -.9]).nice();
         assert.deepEqual(x.domain(), [130, 1, 2, 3, -10]);
+      },
+      "accepts a tick count to control nicing step": function(d3) {
+        var x = d3.scale.linear().domain([12, 87]).nice(5);
+        assert.deepEqual(x.domain(), [0, 100]);
+        var x = d3.scale.linear().domain([12, 87]).nice(10);
+        assert.deepEqual(x.domain(), [10, 90]);
+        var x = d3.scale.linear().domain([12, 87]).nice(100);
+        assert.deepEqual(x.domain(), [12, 87]);
       }
     },
 

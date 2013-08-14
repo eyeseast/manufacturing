@@ -30,18 +30,18 @@ function d3_time_scale(linear, methods, format) {
   };
 
   scale.nice = function(m) {
-    return scale.domain(d3_scale_nice(scale.domain(), function() { return m; }));
+    return scale.domain(d3_scale_nice(scale.domain(), m));
   };
 
   scale.ticks = function(m, k) {
-    var extent = d3_time_scaleExtent(scale.domain());
+    var extent = d3_scaleExtent(scale.domain());
     if (typeof m !== "function") {
       var span = extent[1] - extent[0],
           target = span / m,
           i = d3.bisect(d3_time_scaleSteps, target);
       if (i == d3_time_scaleSteps.length) return methods.year(extent, m);
       if (!i) return linear.ticks(m).map(d3_time_scaleDate);
-      if (Math.log(target / d3_time_scaleSteps[i - 1]) < Math.log(d3_time_scaleSteps[i] / target)) --i;
+      if (target / d3_time_scaleSteps[i - 1] < d3_time_scaleSteps[i] / target) --i;
       m = methods[i];
       k = m[1];
       m = m[0].range;
@@ -57,14 +57,7 @@ function d3_time_scale(linear, methods, format) {
     return d3_time_scale(linear.copy(), methods, format);
   };
 
-  // TOOD expose d3_scale_linear_rebind?
-  return d3.rebind(scale, linear, "range", "rangeRound", "interpolate", "clamp");
-}
-
-// TODO expose d3_scaleExtent?
-function d3_time_scaleExtent(domain) {
-  var start = domain[0], stop = domain[domain.length - 1];
-  return start < stop ? [start, stop] : [stop, start];
+  return d3_scale_linearRebind(scale, linear);
 }
 
 function d3_time_scaleDate(t) {

@@ -91,6 +91,7 @@ function d3_svg_lineY(d) {
 var d3_svg_lineInterpolators = d3.map({
   "linear": d3_svg_lineLinear,
   "linear-closed": d3_svg_lineLinearClosed,
+  "step": d3_svg_lineStep,
   "step-before": d3_svg_lineStepBefore,
   "step-after": d3_svg_lineStepAfter,
   "basis": d3_svg_lineBasis,
@@ -115,6 +116,17 @@ function d3_svg_lineLinear(points) {
 
 function d3_svg_lineLinearClosed(points) {
   return d3_svg_lineLinear(points) + "Z";
+}
+
+// Step interpolation; generates "H" and "V" commands.
+function d3_svg_lineStep(points) {
+  var i = 0,
+      n = points.length,
+      p = points[0],
+      path = [p[0], ",", p[1]];
+  while (++i < n) path.push("H", (p[0] + (p = points[i])[0]) / 2, "V", p[1]);
+  if (n > 1) path.push("H", p[0]);
+  return path.join("");
 }
 
 // Step interpolation; generates "H" and "V" commands.
@@ -237,20 +249,16 @@ function d3_svg_lineBasis(points) {
       y0 = pi[1],
       px = [x0, x0, x0, (pi = points[1])[0]],
       py = [y0, y0, y0, pi[1]],
-      path = [x0, ",", y0];
-  d3_svg_lineBasisBezier(path, px, py);
-  while (++i < n) {
+      path = [x0, ",", y0, "L", d3_svg_lineDot4(d3_svg_lineBasisBezier3, px), ",", d3_svg_lineDot4(d3_svg_lineBasisBezier3, py)];
+  points.push(points[n - 1]);
+  while (++i <= n) {
     pi = points[i];
     px.shift(); px.push(pi[0]);
     py.shift(); py.push(pi[1]);
     d3_svg_lineBasisBezier(path, px, py);
   }
-  i = -1;
-  while (++i < 2) {
-    px.shift(); px.push(pi[0]);
-    py.shift(); py.push(pi[1]);
-    d3_svg_lineBasisBezier(path, px, py);
-  }
+  points.pop();
+  path.push("L", pi);
   return path.join("");
 }
 

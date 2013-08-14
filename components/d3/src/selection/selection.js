@@ -1,15 +1,16 @@
 import "../core/array";
 import "../core/document";
+import "../core/subclass";
+import "../core/vendor";
 
 function d3_selection(groups) {
-  d3_arraySubclass(groups, d3_selectionPrototype);
+  d3_subclass(groups, d3_selectionPrototype);
   return groups;
 }
 
 var d3_select = function(s, n) { return n.querySelector(s); },
     d3_selectAll = function(s, n) { return n.querySelectorAll(s); },
-    d3_selectRoot = d3_document.documentElement,
-    d3_selectMatcher = d3_selectRoot.matchesSelector || d3_selectRoot.webkitMatchesSelector || d3_selectRoot.mozMatchesSelector || d3_selectRoot.msMatchesSelector || d3_selectRoot.oMatchesSelector,
+    d3_selectMatcher = d3_documentElement[d3_vendorSymbol(d3_documentElement, "matchesSelector")],
     d3_selectMatches = function(n, s) { return d3_selectMatcher.call(n, s); };
 
 // Prefer Sizzle, if available.
@@ -19,13 +20,11 @@ if (typeof Sizzle === "function") {
   d3_selectMatches = Sizzle.matchesSelector;
 }
 
-var d3_selectionPrototype = [];
-
 d3.selection = function() {
   return d3_selectionRoot;
 };
 
-d3.selection.prototype = d3_selectionPrototype;
+var d3_selectionPrototype = d3.selection.prototype = [];
 
 import "select";
 import "selectAll";
@@ -48,24 +47,21 @@ import "each";
 import "call";
 import "empty";
 import "node";
+import "size";
 import "enter";
 import "transition";
 
-var d3_selectionRoot = d3_selection([[d3_document]]);
-
-d3_selectionRoot[0].parentNode = d3_selectRoot;
-
-// TODO fast singleton implementation!
-// TODO select(function)
-d3.select = function(selector) {
-  return typeof selector === "string"
-      ? d3_selectionRoot.select(selector)
-      : d3_selection([[selector]]); // assume node
+// TODO fast singleton implementation?
+d3.select = function(node) {
+  var group = [typeof node === "string" ? d3_select(node, d3_document) : node];
+  group.parentNode = d3_documentElement;
+  return d3_selection([group]);
 };
 
-// TODO selectAll(function)
-d3.selectAll = function(selector) {
-  return typeof selector === "string"
-      ? d3_selectionRoot.selectAll(selector)
-      : d3_selection([d3_array(selector)]); // assume node[]
+d3.selectAll = function(nodes) {
+  var group = d3_array(typeof nodes === "string" ? d3_selectAll(nodes, d3_document) : nodes);
+  group.parentNode = d3_documentElement;
+  return d3_selection([group]);
 };
+
+var d3_selectionRoot = d3.select(d3_documentElement);

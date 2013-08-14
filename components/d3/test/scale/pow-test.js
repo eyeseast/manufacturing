@@ -6,7 +6,7 @@ var suite = vows.describe("d3.scale.pow");
 
 suite.addBatch({
   "pow": {
-    topic: load("scale/pow", "interpolate/hsl").document(), // beware instance of d3_Colorr
+    topic: load("scale/pow", "interpolate/hsl"), // beware instance of d3_Colorr
 
     "domain": {
       "defaults to [0, 1]": function(d3) {
@@ -193,6 +193,14 @@ suite.addBatch({
         assert.deepEqual(x.domain(), [1, 1, 2, 3, 11]);
         var x = d3.scale.pow().domain([123.1, 1, 2, 3, -.9]).nice();
         assert.deepEqual(x.domain(), [130, 1, 2, 3, -10]);
+      },
+      "accepts a tick count to control nicing step": function(d3) {
+        var x = d3.scale.pow().domain([12, 87]).nice(5);
+        assert.deepEqual(x.domain(), [0, 100]);
+        var x = d3.scale.pow().domain([12, 87]).nice(10);
+        assert.deepEqual(x.domain(), [10, 90]);
+        var x = d3.scale.pow().domain([12, 87]).nice(100);
+        assert.deepEqual(x.domain(), [12, 87]);
       }
     },
 

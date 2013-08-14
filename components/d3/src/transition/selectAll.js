@@ -10,16 +10,16 @@ d3_transitionPrototype.selectAll = function(selector) {
       subnode,
       transition;
 
-  if (typeof selector !== "function") selector = d3_selection_selectorAll(selector);
+  selector = d3_selection_selectorAll(selector);
 
   for (var j = -1, m = this.length; ++j < m;) {
     for (var group = this[j], i = -1, n = group.length; ++i < n;) {
       if (node = group[i]) {
         transition = node.__transition__[id];
-        subnodes = selector.call(node, node.__data__, i);
+        subnodes = selector.call(node, node.__data__, i, j);
         subgroups.push(subgroup = []);
         for (var k = -1, o = subnodes.length; ++k < o;) {
-          d3_transitionNode(subnode = subnodes[k], k, id, transition);
+          if (subnode = subnodes[k]) d3_transitionNode(subnode, k, id, transition);
           subgroup.push(subnode);
         }
       }

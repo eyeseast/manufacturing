@@ -30,6 +30,12 @@ function d3_scale_quantize(x0, x1, range) {
     return rescale();
   };
 
+  scale.invertExtent = function(y) {
+    y = range.indexOf(y);
+    y = y < 0 ? NaN : y / kx + x0;
+    return [y, y + 1 / kx];
+  };
+
   scale.copy = function() {
     return d3_scale_quantize(x0, x1, range); // copy on write
   };

@@ -25,6 +25,12 @@ suite.addBatch({
         assert.isTrue(svg[0][0].parentNode === body.node());
         assert.isTrue(svg[0][0] === body.node().lastChild);
       },
+      "appends an element specified as a function": function(body) {
+        var svg = body.select("svg").remove().node();
+        assert.isFalse(svg === body.node().lastChild);
+        body.append(function() { return svg; });
+        assert.isTrue(svg === body.node().lastChild);
+      },
       "propagates data to new element": function(body) {
         var data = new Object(), div = body.data([data]).append("div");
         assert.strictEqual(div[0][0].__data__, data);
@@ -89,6 +95,24 @@ suite.addBatch({
         assert.isTrue(span[0][0].parentNode === div[0][0]);
         assert.isTrue(div[0][0].lastChild === span[0][0]);
         assert.isNull(node.lastChild);
+      }
+    }
+  }
+});
+
+suite.addBatch({
+  "enter-append": {
+    topic: load("selection/selection").document(),
+    "on a page with existing elements": {
+      topic: function(d3) {
+        var body = d3.select("body");
+        body.selectAll("div").data(["apple", "orange"]).enter().append("div");
+        return body;
+      },
+      "appends to the end of the parent": function(body) {
+        var data = ["peach", "apple", "banana", "orange", "apricot"];
+        body.selectAll("div").data(data, String).enter().append("div");
+        assert.deepEqual(body.selectAll("div").data(), ["apple", "orange", "peach", "banana", "apricot"]);
       }
     }
   }

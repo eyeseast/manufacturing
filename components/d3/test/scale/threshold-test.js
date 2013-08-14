@@ -26,6 +26,13 @@ suite.addBatch({
       assert.equal(x(.8), "c");
       assert.equal(x(1), "c");
     },
+    "returns undefined if the specified value is not orderable": function(threshold) {
+      var x = threshold().domain([1/3, 2/3]).range(["a", "b", "c"]);
+      assert.isUndefined(x());
+      assert.isUndefined(x(undefined));
+      assert.isUndefined(x(NaN));
+      assert.equal(x(null), "a"); // null < 1/3
+    },
     "domain values are arbitrary": function(threshold) {
       var x = threshold().domain(["10", "2"]).range([0, 1, 2]);
       assert.strictEqual(x.domain()[0], "10");
@@ -42,6 +49,14 @@ suite.addBatch({
       assert.equal(x(.6), b);
       assert.equal(x(.8), c);
       assert.equal(x(1), c);
+    },
+    "invertExtent": {
+      "returns the domain extent for the specified range value": function(threshold) {
+        var a = {}, b = {}, c = {}, x = threshold().domain([1/3, 2/3]).range([a, b, c]);
+        assert.deepEqual(x.invertExtent(a), [undefined, 1/3]);
+        assert.deepEqual(x.invertExtent(b), [1/3, 2/3]);
+        assert.deepEqual(x.invertExtent(c), [2/3, undefined]);
+      }
     }
   }
 });
