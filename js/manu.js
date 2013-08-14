@@ -64,36 +64,39 @@ d3.select('[name=key]').on('change', update);
 function modal(d, i) {
 	// get a state, checking if we just clicked the map or a bar
 	var state = d.Area ? d : gdp[d.properties.name]
-	  , sectors = _.pairs(state.sectors)
-	  , colors = d3.scale.category20c()
-	  , modal = d3.select('#modal')
-	  , width = 100; // placeholder
+	  , modal = d3.select('#modal');
 
-	window.state = state;
+	if (!state || !state.sectors) return;
+
+	var sectors = _(state.sectors).chain()
+		.clone()
+	  	.pairs().sortBy(function(d) { return +d[1]; })
+	  	.reverse()
+	  	.slice(0, 5)
+	  	.value();
+	
+	window._state = state;
 	
 	// update the modal for this state
 	modal.select('.modal-title').text(state.Area);
 
+	// clear the table
+	$(modal.node()).find('table tbody').empty();
+
+	var row = modal.select('table tbody').selectAll('tr')
+	    .data(sectors)
+	  .enter().append('tr');
+
+	// industry name
+	row.append('td').text(function(d) { return d[0]; });
+
+	// industry gdp
+	row.append('td').text(function(d) { 
+		return formats['State Manu GDP'](d[1]); 
+	});
+
 	// show the actual modal
 	$(modal.node()).modal('show');
-
-	// pie chart
-	modal.select('svg').remove()
-	
-	var svg = modal.select('#pie').append('svg')
-	  .append('g')
-	    .attr('class', 'pie')
-	    .attr('transform', translate(100, 100));
-
-	var slices = svg.selectAll('.arc')
-	    .data(pie(sectors))
-	  .enter().append('g')
-	    .attr('class', 'arc');
-
-	slices.append('path')
-		.attr('d', arc)
-		.style('fill', function(d) { return colors(d.data[0]); });
-
 }
 
 function update() {
@@ -168,7 +171,8 @@ function render(err, us, gdp, sectors) {
 		var state = gdp[d.State] || (gdp[d.State] = {})
 		  , sectors = state.sectors || (state.sectors = {});
 
-		sectors[d.Sector] = parseInt(d.GDP.replace('$', ''));
+		// figures should be in millions
+		sectors[d.Sector] = parseInt(d.GDP.replace('$', '') * Math.pow(10, 6));
 	});
 
 	// make a map
