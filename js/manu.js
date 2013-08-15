@@ -6,12 +6,23 @@ var margin = {top: 30, right: 20, bottom: 10, left: 20}
   , barHeight = 20
   , spacing = 3
   , legendWidth = 40
+  , legend
   , bars;
 
 var formats = {
-    'prefixed': d3.format('s'),
     'State Percent Manu': d3.format('%'),
-    'State Manu GDP': function(d) { return '$' + formats.prefixed(d); }
+    'State Manu GDP': function(d) {
+        if (d === 0) return d;
+
+        var n, s = 'M';
+        if (d >= 1e9) {
+            n = d3.round(d / 1e9, 2);
+            s = 'B';
+        } else {
+            n = d3.round(d / 1e6, 2);
+        }
+        return '$' + n + ' ' + s;
+     }
 };
 
 var chart = d3.select('#chart').append('svg')
@@ -58,6 +69,11 @@ var colorSelect = d3.select('form').append('select')
             .transition()
             .duration(500)
             .call(stateStyle, key);
+
+        legend.selectAll('li.key')
+            .data(_.map(colors.range(), colors.invertExtent))
+            .call(legendStyle, key);
+
     });
 
 colorSelect.selectAll('option')
@@ -171,8 +187,8 @@ function render(err, us, gdp, sectors) {
     var gdp = window.gdp = _(gdp).chain().map(function(d) {
         // fix our numbers
         d['Percent US Manu GDP'] = +d['Percent US Manu GDP'] / 100;
-        d['GDP'] = +d['GDP'];
-        d['State Manu GDP'] = +d['State Manu GDP'];
+        d['GDP'] = +d['GDP'] * 1e6;
+        d['State Manu GDP'] = +d['State Manu GDP'] * 1e6;
         d['State Percent Manu'] = +d['State Percent Manu'] / 100;
 
         // then return [key, value]
@@ -187,7 +203,7 @@ function render(err, us, gdp, sectors) {
           , sectors = state.sectors || (state.sectors = {});
 
         // figures should be in millions
-        sectors[d.Sector] = parseInt(d.GDP.replace('$', '') * Math.pow(10, 6));
+        sectors[d.Sector] = parseInt(d.GDP.replace('$', '') * 1e6);
     });
 
     var key = d3.select('[name=key]').property('value')
@@ -264,10 +280,12 @@ function render(err, us, gdp, sectors) {
             state.style('fill', fill.brighter(.2));
         });
 
+    // draw a state outline where I'm hovering to fix
+    // weird stroke issues
     var hover = map.append('path')
         .attr('class', 'hover');
 
-    var legend = d3.select('#legend').append('ul')
+    legend = d3.select('#legend').append('ul')
         .attr('class', 'list-inline');
     
     var keys = legend.selectAll('li.key')
@@ -276,12 +294,6 @@ function render(err, us, gdp, sectors) {
     keys.enter().append('li')
         .attr('class', 'key')
         .call(legendStyle, key);
-        /***
-        .style('background-color', function(d) { return colors(d[0]); })
-        .text(function(d) {
-            return formats[key](d[0]) + ' - ' + formats[key](d[1]);
-        });
-        ***/
 }
 
 
