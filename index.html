@@ -68,14 +68,19 @@
 		text-color: #ccc;
 	}
 
-	#pie svg {
-		float: left;
-		width: 100%;
-		height: 200px;
-	}
-
 	.modal-footer {
 		clear: both;
+	}
+
+	#legend {
+		padding: 1.5em 0 0 1.5em;
+	}
+
+	li.key span {
+		height: 1em;
+		width: 1em;
+		margin-right: .75em;
+		float: left;
 	}
 
 	</style>
@@ -95,7 +100,10 @@
 			</form>
 
 		</header>
-		<div id="map" class="row"></div>
+		<div class="row map-container">
+			<div id="legend" class="col-12"></div>
+			<div id="map" class="col-12"></div>
+		</div>
 		<div id="chart" class="row"></div>
 	</div>
 
