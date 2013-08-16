@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<title>Manufacturing</title>
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+	<link rel="stylesheet" type="text/css" href="components/d3/lib/colorbrewer/colorbrewer.css">
+
+	<style type="text/css">
+
+	.statelines {
+		stroke: #777;
+		stroke-width: 1;
+	}
+
+	.states {
+	    fill: none;
+	    stroke: #777;
+	    stroke-width: 0.5;
+	    stroke-linejoin: round;
+	}
+
+	.states:hover {
+		/***
+		stroke: #333;
+		stroke-width: 1.5;
+		***/
+	}
+
+	.hover {
+		fill: none;
+	}
+
+	.land {
+	    fill: #eee;
+	}
+
+	.axis line,
+	.axis path {
+		fill: none;
+		stroke: #444;
+	}
+
+	.axis {
+		font-size: 10px;
+	}
+
+	.bar rect {
+		stroke: #fff;
+		shape-rendering: crispEdges;
+	}
+
+	.bar rect.non-manufacturing {
+		fill: #eee;
+	}
+
+	.bar rect.manufacturing {
+		fill: rgb(253, 141, 60);
+	}
+
+	.bar:hover rect.manufacturing {
+		fill: rgb(254, 178, 76);
+	}
+
+	.bar text {
+		font-size: 12px;
+		text-color: #ccc;
+	}
+
+	.modal-footer {
+		clear: both;
+	}
+
+	#legend {
+		padding: 1.5em 0 0 1.5em;
+	}
+
+	li.key {
+		border-top-width: 15px;
+		border-top-style: solid;
+		font-size: .75em;
+		width: 10%;
+		padding-left: 0;
+		padding-right: 0;
+	}
+
+
+	</style>
+</head>
+<body>
+	<div class="container">
+		<header class="row">
+			<div class="col-12">
+				<h1>Manufacturing in America</h1>
+				<p>The U.S. is the world's largest manufacturing economy, producing 22 percent fo the world's manufactured products. In some states like California and Texas, manufacturing contributes billions of dollars to the economy.</p>
+			</div>
+			<form class="form-inline col-12">
+				<select name="key" class="">
+					<option value="State Percent Manu">Percent of State GDP from Manufacturing</option>
+					<option value="State Manu GDP">Total State Manufacturing GDP</option>
+				</select>
+			</form>
+
+		</header>
+		<div id="chart" class="row"></div>
+	</div>
+
+	<div class="modal fade" id="modal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title"></h4>
+				</div>
+				<div class="modal-body">
+					<h5>Top Industries</h5>
+					<table class="table">
+						<tbody></tbody>
+					</table>
+				</div>
+				<div class="modal-footer">
+					<p>Source: US Bureau of Economic Analysis</p>
+				</div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+
+	
+	<script src="components/d3/d3.min.js"></script>
+	<script src="components/d3-geo-projection/d3.geo.projection.min.js"></script>
+	<script src="components/d3/lib/colorbrewer/colorbrewer.js"></script>
+	<script src="components/queue-async/queue.min.js"></script>
+	<script src="components/topojson/topojson.min.js"></script>
+	<script src="components/underscore/underscore-min.js"></script>
+	
+	<script src="components/jquery/jquery.min.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	
+	<script type="text/javascript">
+	var urls = {
+		us: 'data/us.json',
+		gdp: 'data/manu-by-state.csv',
+		sectors: 'data/sectors.csv'
+	};
+	</script>
+	<script type="text/javascript">
+	var margin = {top: 30, right: 20, bottom: 10, left: 20}
+	  , width = parseInt(d3.select('#chart').style('width'))
+	  , width = width - margin.left - margin.right
+	  , barHeight = 20
+	  , spacing = 3
+	  , legendWidth = 40
+	  , legend
+	  , bars;
+
+	var formats = {
+	    'State Percent Manu': d3.format('%'),
+	    'State Manu GDP': function(d) {
+	        if (d === 0) return d;
+
+	        var n, s = 'M';
+	        if (d >= 1e9) {
+	            n = d3.round(d / 1e9, 2);
+	            s = 'B';
+	        } else {
+	            n = d3.round(d / 1e6, 2);
+	        }
+	        return '$' + n + ' ' + s;
+	     }
+	};
+
+	// scales and axes
+	var colors = d3.scale.quantize()
+	    //.domain([0, .5])
+	    .range(colorbrewer.YlGnBu[7]);
+
+	var chart = d3.select('#chart').append('svg')
+	    .style('width', (width + margin.left + margin.right) + 'px')
+	  .append('g')
+	    .attr('transform', 'translate(' + [margin.left, margin.top] + ')');
+
+    var x = d3.scale.linear()
+        //.domain([0, .5])
+        .range([0, width]);
+
+    var y = d3.scale.ordinal();
+
+    var xAxis = d3.svg.axis()
+        .orient('top')
+        .scale(x);
+
+    d3.select(window).on('resize', function() { requestAnimationFrame(resize); });
+    d3.select('[name=key]').on('change', update);
+
+    queue()
+        .defer(d3.csv, urls.gdp)
+        .defer(d3.csv, urls.sectors)
+        .await(render);
+
+    function modal(d, i) {
+        // get a state, checking if we just clicked the map or a bar
+        var state = d.Area ? d : gdp[d.properties.name]
+          , modal = d3.select('#modal');
+
+        if (!state || !state.sectors) return;
+
+        var sectors = _(state.sectors).chain()
+            .clone()
+            .pairs().sortBy(function(d) { return +d[1]; })
+            .reverse()
+            .slice(0, 5)
+            .value();
+        
+        window._state = state;
+        
+        // update the modal for this state
+        modal.select('.modal-title').text(state.Area);
+
+        // clear the table
+        $(modal.node()).find('table tbody').empty();
+
+        var row = modal.select('table tbody').selectAll('tr')
+            .data(sectors)
+          .enter().append('tr');
+
+        // industry name
+        row.append('td').text(function(d) { return d[0]; });
+
+        // industry gdp
+        row.append('td').text(function(d) { 
+            return formats['State Manu GDP'](d[1]); 
+        });
+
+        // show the actual modal
+        $(modal.node()).modal('show');
+    }
+
+    function update() {
+        var key = d3.select(this).property('value')
+          , values = _(gdp).chain().values().sortBy(key).reverse().value();
+
+        // update our extent for either raw numbers or percents
+        /***
+        var max = key === "State Percent Manu" ? 50
+          : d3.max(values, function(d) { return d[key]; });
+        ***/
+        var max = d3.max(values, function(d) { return d[key]; });
+        colors.domain([0, max]);
+        x.domain([0, max]);
+        xAxis.tickFormat(formats[key]);
+
+        // update the chart
+        chart.select('.x.axis')
+            .transition()
+            .duration(500)
+            .call(xAxis);
+        
+        bars
+            .data(values, function(d) { return d.Area; })
+          .transition()
+          .duration(500)
+            .attr('transform', function(d, i) { return translate(0, y(i)); })
+          .select('rect.manufacturing')
+            .attr('width', function(d) { return x(d[key]); });
+    }
+
+    function render(err, gdp, sectors) {
+
+    	var key = d3.select('[name=key]').property('value');
+
+        // set the y range and x format
+        xAxis.tickFormat(formats[key]);
+        chart.append('g')
+            .attr('class', 'x axis')
+            .call(xAxis);
+
+        y.domain(d3.range(gdp.length))
+            .rangeBands([0, barHeight * gdp.length]);
+
+        d3.select(chart.node().parentNode)
+            .style('height', (y.rangeExtent()[1] + margin.top + margin.bottom) + 'px');
+
+        var gdp = window.gdp = _(gdp).chain().map(function(d) {
+            // fix our numbers
+            d['Percent US Manu GDP'] = +d['Percent US Manu GDP'] / 100;
+            d['GDP'] = +d['GDP'] * 1e6;
+            d['State Manu GDP'] = +d['State Manu GDP'] * 1e6;
+            d['State Percent Manu'] = +d['State Percent Manu'] / 100;
+
+            // then return [key, value]
+            return [d.Area, d];
+        }).object().value();
+
+        // merge in sector data
+        _.each(sectors, function(d) {
+            // each row has [state, sector, gdp]
+            // set gdp[state].sectors[sector] = gdp
+            var state = gdp[d.State] || (gdp[d.State] = {})
+              , sectors = state.sectors || (state.sectors = {});
+
+            // figures should be in millions
+            sectors[d.Sector] = parseInt(d.GDP.replace('$', '') * 1e6);
+        });
+
+        var values = _(gdp).chain().values().sortBy(key).reverse().value()
+          , max = d3.max(values, function(d) { return d[key]; });
+
+        colors.domain([0, max]);
+        x.domain([0, max]);
+        xAxis.tickFormat(formats[key]);
+
+        // make a chart
+        bars = chart.selectAll('.bar')
+            .data(_(gdp).chain().values().sortBy(key).reverse().value(), 
+                function(d) { return d.Area; })
+          .enter().append('g')
+            .attr('class', 'bar')
+            .attr('transform', function(d, i) { return translate(0, y(i)) });
+        
+        bars.append('rect')
+            .attr('class', 'non-manufacturing')
+            .attr('height', y.rangeBand())
+            .attr('width', width);
+
+        bars.append('rect')
+            .attr('class', 'manufacturing')
+            .attr('height', y.rangeBand())
+            .attr('width', function(d) { return x(d[key]); });
+        
+        bars.append('text')
+            .text(function(d) { return d.Area; })
+            .attr('y', y.rangeBand() - 5)
+            .attr('x', spacing);
+
+        bars.on('click', modal);
+
+    }
+
+    function resize() {
+        // adjust things when the window size changes
+        width = parseInt(d3.select('#chart').style('width'));
+        width = width - margin.left - margin.right;
+        height = y.rangeBand() * _.size(gdp);
+
+        var key = d3.select('[name=key]').property('value');
+
+        // resize the chart
+        x.range([0, width]);
+        d3.select(chart.node().parentNode)
+            .style('height', (y.rangeExtent()[1] + margin.top + margin.bottom) + 'px')
+            .style('width', (width + margin.left + margin.right) + 'px');
+
+        chart.select('.x.axis').call(xAxis);
+
+
+        bars.select('rect.non-manufacturing')
+            .attr('width', width);
+
+        bars.select('rect.manufacturing')
+            .attr('width', function(d) { return x(d[key]); });
+
+    }
+
+    function translate(x, y) {
+        return "translate(" + [x, y] + ")";
+    }
+
+	</script>
+
+</body>
+</html>

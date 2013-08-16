@@ -25,11 +25,6 @@ var formats = {
      }
 };
 
-var chart = d3.select('#chart').append('svg')
-    .style('width', (width + margin.left + margin.right) + 'px')
-  .append('g')
-    .attr('transform', 'translate(' + [margin.left, margin.top] + ')');
-
 var map = d3.select('#map').append('svg')
     .style('width', width + 'px')
     .style('height', height + 'px');
@@ -46,16 +41,6 @@ var path = d3.geo.path()
 var colors = d3.scale.quantize()
     //.domain([0, .5])
     .range(colorbrewer.YlGnBu[7]);
-
-var x = d3.scale.linear()
-    //.domain([0, .5])
-    .range([0, width]);
-
-var y = d3.scale.ordinal();
-
-var xAxis = d3.svg.axis()
-    .orient('top')
-    .scale(x);
 
 var colorSelect = d3.select('form').append('select')
     .attr('name', 'color')
@@ -142,22 +127,6 @@ function update() {
     ***/
     var max = d3.max(values, function(d) { return d[key]; });
     colors.domain([0, max]);
-    x.domain([0, max]);
-    xAxis.tickFormat(formats[key]);
-
-    // update the chart
-    chart.select('.x.axis')
-        .transition()
-        .duration(500)
-        .call(xAxis);
-    
-    bars
-        .data(values, function(d) { return d.Area; })
-      .transition()
-      .duration(500)
-        .attr('transform', function(d, i) { return translate(0, y(i)); })
-      .select('rect.manufacturing')
-        .attr('width', function(d) { return x(d[key]); });
 
     map.selectAll('path.states')
         .transition()
@@ -171,18 +140,6 @@ function update() {
 
 
 function render(err, us, gdp, sectors) {
-
-    // set the y range and x format
-    xAxis.tickFormat(formats[key]);
-    chart.append('g')
-        .attr('class', 'x axis')
-        .call(xAxis);
-
-    y.domain(d3.range(gdp.length))
-        .rangeBands([0, barHeight * gdp.length]);
-
-    d3.select(chart.node().parentNode)
-        .style('height', (y.rangeExtent()[1] + margin.top + margin.bottom) + 'px');
 
     var gdp = window.gdp = _(gdp).chain().map(function(d) {
         // fix our numbers
@@ -211,33 +168,6 @@ function render(err, us, gdp, sectors) {
       , max = d3.max(values, function(d) { return d[key]; });
 
     colors.domain([0, max]);
-    x.domain([0, max]);
-    xAxis.tickFormat(formats[key]);
-
-    // make a chart
-    bars = chart.selectAll('.bar')
-        .data(_(gdp).chain().values().sortBy(key).reverse().value(), 
-            function(d) { return d.Area; })
-      .enter().append('g')
-        .attr('class', 'bar')
-        .attr('transform', function(d, i) { return translate(0, y(i)) });
-    
-    bars.append('rect')
-        .attr('class', 'non-manufacturing')
-        .attr('height', y.rangeBand())
-        .attr('width', width);
-
-    bars.append('rect')
-        .attr('class', 'manufacturing')
-        .attr('height', y.rangeBand())
-        .attr('width', function(d) { return x(d[key]); });
-    
-    bars.append('text')
-        .text(function(d) { return d.Area; })
-        .attr('y', y.rangeBand() - 5)
-        .attr('x', spacing);
-
-    bars.on('click', modal);
 
     // make a map
     window.us = us;
@@ -313,25 +243,6 @@ function resize() {
         .style('width', width + 'px')
         .style('height', height + 'px');
 
-    d3.select(chart.node().parentNode)
-        .style('width', width + 'px')
-        .style('height', height + 'px');
-
-    // resize the chart
-    x.range([0, width]);
-    d3.select(chart.node().parentNode)
-        .style('height', (y.rangeExtent()[1] + margin.top + margin.bottom) + 'px')
-        .style('width', (width + margin.left + margin.right) + 'px');
-
-    chart.select('.x.axis').call(xAxis);
-
-
-    bars.select('rect.non-manufacturing')
-        .attr('width', width);
-
-    bars.select('rect.manufacturing')
-        .attr('width', function(d) { return x(d[key]); });
-
     // resize the map
     map.select('.land').attr('d', path);
     map.selectAll('.states').attr('d', path);
@@ -353,7 +264,6 @@ function stateStyle(selection, key) {
         return colors(value);
     });
 }
-
 
 function translate(x, y) {
     return "translate(" + [x, y] + ")";
