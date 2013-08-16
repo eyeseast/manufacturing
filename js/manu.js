@@ -339,7 +339,7 @@ function resize() {
 
 function legendStyle(selection, key) {
     selection
-        .style('background-color', function(d) { return colors(d[0]); })
+        .style('border-color', function(d) { return colors(d[0]); })
         .text(function(d) {
             return formats[key](d[0]) + ' - ' + formats[key](d[1]);
         });
