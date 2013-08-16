@@ -73,3 +73,7 @@ li.key {
 	padding-left: 0;
 	padding-right: 0;
 }
+
+#info div {
+	border-left: 2px solid #333;
+}
